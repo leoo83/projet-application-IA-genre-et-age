@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href={{url_for('static' , filename = 'css/style.css')}}>
+    <title>Projet d'application</title>
+</head>
+<body>
+    <div id="content" style = "background-image: url('../static/css/fond3.jpg'); background-repeat: no-repeat; background-size: cover;">
+        <h1 style="text-align: center; color: black; font-size: 50px; justify-content: center;">Projet d'application</h1>
+
+        <div id="choice-image" style = "display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2em;">
+
+            <div id="file-image" style = "display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1.5em; padding: 15px; background-color: rgba(0, 0, 0, 0.7); box-shadow: 0 0 10px #000;">
+                
+                <h2>Soumettre une image à partir de l'ordinateur</h2>
+
+                <form id="file-form" action="/success" method="post", enctype="multipart/form-data">
+                    <input class="file-form-input" type="file", name = "file"/>
+                    <button class="btn btn-success btn-lg">Soumettre l'image</button> 
+                </form>
+            </div>
+
+            <div id="handle-camera" style = "display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1.5em; background-color: rgba(0, 0, 0, 0.7); padding: 15px; box-shadow: 0 0 10px #000;">
+
+                <h2>Soumettre une image prise par la caméra</h2>
+
+
+                <div style = "display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 10em;">
+                    <div id="live" style = "display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.5em;">
+                        <button id="camera-button">Ouvrir la caméra pour prendre une photo</button>
+                        <video id="video" autoplay style = "height: 0px; width: 0px;"></video>
+                        <button id="snap">Prendre une photo</button>
+                    </div>
+    
+                    <div id="take-picture" style="display: none;">
+                        <h4 id="title-picture" style="display: none; padding: 10px;">Image actuelle</h4>
+                        <canvas id="canvas" style="display: none;" ></canvas>
+    
+                        <form id="upload-form" method="post" action="/success" style = "padding: 10px;">
+                            <input type="hidden" name="file" id="image" />
+                            <input type="submit" value="Soumettre l'image" />
+                        </form>
+    
+                        <div id="take-picture-buttons" style = "padding: 10px;">
+                            <button id="delete-picture" style="display: none;">Supprimer la photo actuelle</button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    const video = document.getElementById('video');
+                    const canvas = document.getElementById('canvas');
+                    const snapButton = document.getElementById('snap');
+                    const cameraButton = document.getElementById('camera-button');
+                    const divPicture = document.getElementById('take-picture');
+                    const titlePicture = document.getElementById('title-picture');
+                    const deletePictureButton = document.getElementById('delete-picture');
+                    //const uploadPictureCameraButton = document.getElementById('upload-picture-camera');
+                    let imageInput = document.getElementById('image');
+                    let uploadForm = document.getElementById('upload-form');
+                    
+
+                    let state_camera = 0;
+                    let state_picture = 0;
+                    
+                    // Fonction pour ouvrir la caméra
+                    function openCamera() {
+                        // Afficher l'élément vidéo et le bouton snap
+                        cameraButton.textContent = "Fermer la caméra";
+                        video.style.display = "block";
+                        video.style.boxShadow = "0 0 10px #fff"; 
+                        video.style.height = "150px";
+                        video.style.width = "200px"; 
+                        snapButton.style.display = "block";
+
+                        // Demander l'autorisation d'accéder à la caméra
+                        navigator.mediaDevices.getUserMedia({ video: true })
+                        .then((stream) => {
+                            // Afficher le flux vidéo dans l'élément vidéo
+                            video.srcObject = stream;
+                        })
+                        .catch((error) => {
+                            console.error("Error : " + error);
+                        });
+                    }
+
+                    function closeCamera() {
+                        const stream = video.srcObject;
+                        const tracks = stream.getTracks();
+
+                        tracks.forEach(function(track) {
+                        track.stop();
+                        });
+
+                        video.srcObject = null;
+
+                        cameraButton.textContent = "Ouvrir la caméra pour prendre une photo";
+                        video.style.display = "none";
+                        snapButton.style.display = "none";
+                    }
+
+                    function handleCamera() {
+                        if (state_camera == 0) {
+                            openCamera();
+                            state_camera = 1;
+                        } else {
+                            closeCamera();
+                            state_camera = 0;
+                        }
+                    }
+
+                    function takePicture() {
+                        divPicture.style.display = "flex";
+                        divPicture.style.flexDirection = "column";
+                        divPicture.style.justifyContent = "space-between";
+                        divPicture.style.alignItems = "center";
+                        
+                        canvas.style.display = "block";
+                        canvas.style.boxShadow = "0 0 10px #fff"; 
+                        canvas.height = 160;
+                        canvas.width = 190;
+                        // On met la photo prise par la caméra sur l'élément canvas
+                        canvas.getContext('2d').drawImage(video, 50, 0, 600, 600, 0, 0, 200, 200)
+                        
+                        let dataURL = canvas.toDataURL('image/png');
+                        imageInput.value = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");;
+
+                        titlePicture.style.display = "block";
+
+                        deletePictureButton.style.display = "block";
+                        //uploadPictureCameraButton.style.display = "block";
+                    }
+
+                    function deletePicture() {
+                        divPicture.style.display = "none";
+                        canvas.style.display = "none";
+                        deletePictureButton.style.display = "none";
+                        //uploadPictureCameraButton = "none";
+                    }
+
+                    function uploadPicture() {
+                        var dataURL = canvas.toDataURL('image/png');
+                        imageInput.value = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+                        uploadForm.submit();
+                    }
+
+                    // Ajouter les événements de type click sur les boutons
+                    cameraButton.addEventListener('click', handleCamera);
+                    snapButton.addEventListener('click', takePicture);
+                    deletePictureButton.addEventListener('click', deletePicture);
+                    uploadForm.addEventListener('submit', function(event) {
+                        event.preventDefault();
+                        uploadPicture();
+                    });
+                    //uploadPictureCameraButton('click', uploadPicture);
+
+                </script>
+            </div>
+        </div>
+
+        <div class="presentation">
+            <p style = "color: black; font-weight: bold; font-size: 20px; text-align: center;">Ceci est un projet de 4ème année réalisé par CORNILLEAUX Axel, HANIFI Léo et DEBBAGH Ismaël dans le cadre de la majeure Intelligence Artificielle à l'ESME Sudria lors du second semestre de l'année universitaire 2022-2023.</p>
+        </div>
+
+
+    </div>
+</body>
+</html>
